@@ -1,0 +1,26 @@
+{
+  "name": "onepanel-bot",
+  "version": "1.0.0",
+  "description": "Discord bot untuk manajemen Pterodactyl Panel dengan sistem economy",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": ["discord", "bot", "pterodactyl", "panel"],
+  "author": "OnePanel",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "mongoose": "^8.1.1",
+    "axios": "^1.6.5",
+    "dotenv": "^16.4.1",
+    "ms": "^2.1.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=16.11.0"
+  }
+}
