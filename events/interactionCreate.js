@@ -1,7 +1,8 @@
-const { Events } = require('discord.js');
+const { Events, EmbedBuilder } = require('discord.js');
 const User = require('../models/User');
 const { errorEmbed, successEmbed } = require('../utils/embeds');
 const { isValidEmail, sendVerificationCode, sanitizeUsername } = require('../utils/verification');
+const config = require('../config/config');
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -15,11 +16,44 @@ module.exports = {
         return;
       }
 
+      // ── Cooldown / Anti-Spam ────────────────────────────────────────────────
+      const cooldownSeconds = command.cooldown ?? config.bot.defaultCooldown ?? 5;
+
+      if (!client.cooldowns.has(command.data.name)) {
+        client.cooldowns.set(command.data.name, new Map());
+      }
+
+      const timestamps = client.cooldowns.get(command.data.name);
+      const cooldownMs = cooldownSeconds * 1_000;
+      const now = Date.now();
+      const userId = interaction.user.id;
+
+      if (timestamps.has(userId)) {
+        const expiresAt = timestamps.get(userId) + cooldownMs;
+        if (now < expiresAt) {
+          const remaining = ((expiresAt - now) / 1_000).toFixed(1);
+          const cooldownEmbed = new EmbedBuilder()
+            .setColor('#ff4444')
+            .setTitle('⏳ Slow down!')
+            .setDescription(
+              `Kamu harus menunggu **${remaining} detik** lagi sebelum bisa pakai \`/${command.data.name}\` lagi.`
+            )
+            .setFooter({ text: 'Anti-spam protection' })
+            .setTimestamp();
+          return interaction.reply({ embeds: [cooldownEmbed], ephemeral: true });
+        }
+      }
+
+      // Catat waktu penggunaan
+      timestamps.set(userId, now);
+      setTimeout(() => timestamps.delete(userId), cooldownMs);
+      // ────────────────────────────────────────────────────────────────────────
+
       try {
         await command.execute(interaction, client);
       } catch (error) {
         console.error(`Error executing ${interaction.commandName}:`, error);
-        
+
         const reply = {
           embeds: [errorEmbed(
             'Error',
@@ -35,15 +69,15 @@ module.exports = {
         }
       }
     }
-    
+
     // Handle button interactions
     else if (interaction.isButton()) {
       const customId = interaction.customId;
-      
+
       // Giveaway join button
       if (customId.startsWith('giveaway_join_')) {
         const giveawayId = customId.replace('giveaway_join_', '');
-        
+
         try {
           const Giveaway = require('../models/Giveaway');
           const User = require('../models/User');
@@ -99,11 +133,11 @@ module.exports = {
           // Update giveaway message
           const giveawayMessage = await interaction.channel.messages.fetch(giveaway.messageId);
           const embed = giveawayMessage.embeds[0];
-          
+
           // Update participant count in embed
           const newEmbed = require('discord.js').EmbedBuilder.from(embed);
           newEmbed.spliceFields(2, 1, { name: '📊 Participants', value: `${giveaway.participants.length}`, inline: true });
-          
+
           await giveawayMessage.edit({ embeds: [newEmbed] });
 
           // Confirm to user
@@ -120,7 +154,7 @@ module.exports = {
 
         } catch (error) {
           console.error('Error joining giveaway:', error);
-          
+
           await interaction.reply({
             embeds: [require('../utils/embeds').errorEmbed('Error', error.message || 'Terjadi kesalahan.')],
             ephemeral: true
@@ -132,7 +166,7 @@ module.exports = {
         const parts = customId.split('_');
         const action = parts[2]; // confirm or cancel
         const serverId = parts[3];
-        
+
         const deleteServerCommand = require('../commands/panel/delete-server');
         await deleteServerCommand.handleButton(interaction, serverId, action);
       }
@@ -140,11 +174,11 @@ module.exports = {
         // Will be implemented if needed
       }
     }
-    
+
     // Handle modal submissions
     else if (interaction.isModalSubmit()) {
       const customId = interaction.customId;
-      
+
       // Registration modal
       if (customId === 'register_modal') {
         await interaction.deferReply({ ephemeral: true });
@@ -189,10 +223,10 @@ module.exports = {
 
           // Generate verification code
           const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-          
+
           // Create or update user in database
           let user = await User.findOne({ discordId: interaction.user.id });
-          
+
           if (user) {
             // Update existing user
             user.email = email.toLowerCase();
@@ -247,7 +281,7 @@ module.exports = {
 
         } catch (error) {
           console.error('Error processing registration modal:', error);
-          
+
           await interaction.editReply({
             embeds: [errorEmbed(
               'Error',
@@ -258,11 +292,11 @@ module.exports = {
         }
       }
     }
-    
+
     // Handle select menus
     else if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
-      
+
       // Purchase confirmation
       if (customId.startsWith('confirm_purchase_')) {
         const parts = customId.split('_');
@@ -291,11 +325,11 @@ module.exports = {
           const { createServer } = require('../utils/pterodactyl');
           const { removeCoins } = require('../utils/economy');
           const { calculateDiscount } = require('../utils/voucher');
-          const { 
-            generateServerId, 
+          const {
+            generateServerId,
             generateServerName,
             calculateExpiryDate,
-            calculateDailyCost 
+            calculateDailyCost
           } = require('../utils/server');
           const { successEmbed, errorEmbed } = require('../utils/embeds');
           const config = require('../config/config');
@@ -402,10 +436,10 @@ module.exports = {
               .setTimestamp();
 
             if (voucherCode) {
-              embed.addFields({ 
-                name: '🎟️ Voucher Used', 
+              embed.addFields({
+                name: '🎟️ Voucher Used',
                 value: `${voucherCode} (-${discountPercent}% + ${bonusDuration} days)`,
-                inline: false 
+                inline: false
               });
             }
 
@@ -432,7 +466,7 @@ module.exports = {
 
         } catch (error) {
           console.error('Error processing purchase:', error);
-          
+
           await interaction.followUp({
             embeds: [errorEmbed(
               'Purchase Failed',
@@ -443,7 +477,7 @@ module.exports = {
           });
         }
       }
-      
+
       // Buy ticket selection
       else if (customId.startsWith('buy_select_')) {
         const purchaseType = interaction.values[0];

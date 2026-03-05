@@ -43,6 +43,12 @@ module.exports = {
     embedColor: process.env.EMBED_COLOR || '#00ff9d',
   },
 
+  // Wanyzx API Configuration
+  wanyzxApi: {
+    baseURL: process.env.WANYZX_API_URL || 'https://wanyzx.dev/api',
+    apiKey: process.env.WANYZX_API_KEY || null,
+  },
+
   // User Limits
   limits: {
     freeServers: 2,
