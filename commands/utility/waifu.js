@@ -3,6 +3,7 @@ const config = require('../../config/config');
 const { getWaifu } = require('../../utils/wanyzxApi');
 
 module.exports = {
+    cooldown: 10, // override default — waifu fetch API, kasih 10 detik
     data: new SlashCommandBuilder()
         .setName('waifu')
         .setDescription('Dapatkan gambar waifu random 🌸'),

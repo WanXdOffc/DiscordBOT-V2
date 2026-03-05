@@ -41,6 +41,7 @@ module.exports = {
   bot: {
     prefix: process.env.PREFIX || '!',
     embedColor: process.env.EMBED_COLOR || '#00ff9d',
+    defaultCooldown: 5, // detik — cooldown default untuk semua cmd
   },
 
   // Wanyzx API Configuration
