@@ -16,7 +16,7 @@ if (config.wanyzxApi.apiKey) {
 const wanyzxClient = axios.create({
     baseURL: config.wanyzxApi.baseURL,
     headers,
-    timeout: 10_000, // 10 detik timeout
+    timeout: 30_000, // 30 detik — AI endpoint butuh lebih lama
 });
 
 // Interceptor: log error response biar gampang debug
@@ -78,6 +78,27 @@ async function getWaifu() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AI: Venice
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Kirim pesan ke Venice AI dan dapatkan balasannya.
+ * POST /ai/venice — { message: string }
+ * @param {string} message - Pesan yang dikirim ke AI
+ * @returns {Promise<string>} Teks balasan dari AI
+ */
+async function getVeniceAI(message) {
+    if (!message || typeof message !== 'string') {
+        throw new Error('[WanyzxAPI] getVeniceAI() butuh parameter message (string).');
+    }
+    const result = await post('/ai/venice', { message });
+    if (!result.success) {
+        throw new Error(`[WanyzxAPI] getVeniceAI() gagal: ${JSON.stringify(result)}`);
+    }
+    return result.text;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Export
 // ─────────────────────────────────────────────────────────────────────────────
 module.exports = {
@@ -87,4 +108,7 @@ module.exports = {
 
     // Tools
     getWaifu,
+
+    // AI
+    getVeniceAI,
 };
